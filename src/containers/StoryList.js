@@ -1,8 +1,10 @@
 import React, { Component } from 'react';
 import { View } from 'react-native';
 import RefreshList from '../components/RefreshList';
+import ListItem from '../components/ListItem';
 import Api from '../services/Api';
-const NUMBER_PER_PAGE = 12;
+import { fetchLimitData } from '../services/Network';
+const NUMBER_PER_PAGE = 10;
 
 export default class StoryList extends Component {
   static navigationOptions = ({ navigation, screenProps }) => ({
@@ -11,8 +13,6 @@ export default class StoryList extends Component {
 
   constructor() {
     super();
-    this.getList = this._getList.bind(this);
-    this.getIdInfo = this._getIdInfo.bind(this);
     this.state = {
       pageNum: 1,
       listId: [],
@@ -27,45 +27,53 @@ export default class StoryList extends Component {
 
   async _getList() {
     const { screenProps } = this.props;
-    try {
-      let response = await fetch(
-        Api[`HN_${screenProps.routeName.toUpperCase()}_STORIES_ENDPOINT`]
-      );
-      let responseJson = await response.json();
-      await this.setState({ listId: [...responseJson] });
-      this.getIdInfo(true);
-    } catch (err) {
-      console.log(err);
-    }
+    fetch(Api[`HN_${screenProps.routeName.toUpperCase()}_STORIES_ENDPOINT`])
+      .then(response => response.json())
+      .then(responseJson => {
+        this.setState({ listId: [...responseJson], pageNum: 1 }, () => {
+          this._getIdInfo(true);
+        });
+      })
+      .catch(err => {
+        console.log(err);
+      });
   }
 
-  _getIdInfo(refresh = false) {
+  _getIdInfo = (refresh = false) => {
     if (this.state.loading === true) return;
 
-    this.setState({ loading: true }, () => {
-      let { pageNum, listId, listInfo } = this.state;
-      let promises = listId
-        .slice((pageNum - 1) * NUMBER_PER_PAGE, pageNum * NUMBER_PER_PAGE)
-        .map(id => {
-          return fetch(Api.HN_ITEM_ENDPOINT + id + '.json').then(response =>
-            response.json()
-          );
-        });
+    let { pageNum, listId, listInfo } = this.state;
+    if (refresh === false && pageNum * NUMBER_PER_PAGE > listId.length) return;
 
-      Promise.all(promises)
-        .then(infos => {
-          this.setState({
-            listInfo: refresh? listInfo : listInfo.concat(infos),
-            pageNum: pageNum + 1,
-            loading: false
-          });
-        })
-        .catch(err => {
-          this.setState({ loading: false });
-          console.log(err);
-        });
+    this.setState({ loading: true }, () =>
+      this._setListInfo({ pageNum, listId, listInfo, refresh })
+    );
+  };
+
+  _setListInfo = ({ pageNum, listId, listInfo, refresh }) => {
+    let promises = fetchLimitData({
+      pageNum,
+      numPerPage: NUMBER_PER_PAGE,
+      source: listId
     });
-  }
+
+    Promise.all(promises)
+      .then(infos => {
+        this.setState({
+          listInfo: refresh ? infos : listInfo.concat(infos),
+          pageNum: pageNum + 1,
+          loading: false
+        });
+      })
+      .catch(err => {
+        this.setState({ loading: false });
+        console.log(err);
+      });
+  };
+
+  _renderItem = ({ item }) => (
+    <ListItem navigate={this.props.navigation.navigate} {...item} />
+  );
 
   render() {
     let state = this.state;
@@ -75,7 +83,8 @@ export default class StoryList extends Component {
         <RefreshList
           data={state.listInfo}
           onRefresh={this.getList}
-          getIdInfo={this.getIdInfo}
+          renderItem={this._renderItem}
+          onEndReached={() => this._getIdInfo()}
           {...this.props}
         />
       </View>

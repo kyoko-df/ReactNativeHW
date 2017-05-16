@@ -3,13 +3,11 @@ import { View, Text, TouchableOpacity } from 'react-native';
 
 export default class ListItem extends PureComponent {
   render() {
-    const { navigate, ...data} = this.props
+    const { navigate, ...data } = this.props;
     const { by, descendants, id, score, title, url } = data;
     return (
       <TouchableOpacity
-        onPress={() => {
-          this.props.navigate('Detail', {data: data});
-        }}
+        onPress={() => navigate('Detail', {...data})}
       >
         <View>
           <View>
