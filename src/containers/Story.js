@@ -8,6 +8,4 @@ const Story = StackNavigator({
   Detail: { screen: StoryDetail }
 });
 
-
-
-export default (props) => <Story screenProps={props.navigation.state} />;
+export default props => <Story screenProps={props.navigation.state} />;
