@@ -3,7 +3,7 @@ import { TabNavigator } from 'react-navigation';
 import Story from './containers/Story';
 
 const App = TabNavigator({
-  ask: {
+  Ask: {
     screen: Story,
     navigationOptions: {
       tabBarLabel: 'Ask HN'
@@ -37,7 +37,13 @@ const App = TabNavigator({
   tabBarPosition: 'bottom',
   swipeEnabled: true,
   lazy: true,
-  initialRouteName: 'Top'
+  initialRouteName: 'Top',
+  tabBarOptions: {
+    activeTintColor: '#FF6600',
+    labelStyle: {
+      marginBottom: 16
+    }
+  }
 });
 
 export default App;
